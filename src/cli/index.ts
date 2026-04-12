@@ -1,23 +1,26 @@
 import { Command } from "commander";
-import { render } from "ink";
 import React from "react";
 
 import { registerAudioCli } from "./commands/audio/index.ts";
 import { registerImageCli } from "./commands/image/index.ts";
 import { registerVideoCli } from "./commands/video/index.ts";
-import { WelcomeApp } from "./components/welcome.tsx";
+import { MainMenu } from "./components/main-menu.tsx";
+import { runFfmpegGuard } from "./guards/ffmpeg-guard.ts";
+import { printStaticInk } from "./render-ui.ts";
 import { startMcpServer } from "../mcp/server.ts";
 import { createApp } from "../server/app.ts";
 
 export function createCliProgram(): Command {
   const program = new Command();
 
+  program.hook("preAction", runFfmpegGuard);
+
   program
     .name("ffkity")
     .description("FFmpeg helper — CLI, HTTP API, and MCP (skeleton).")
     .version("0.0.1")
-    .action(() => {
-      render(React.createElement(WelcomeApp));
+    .action(async () => {
+      printStaticInk(React.createElement(MainMenu));
     });
 
   registerImageCli(program);
