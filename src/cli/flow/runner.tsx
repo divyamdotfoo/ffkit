@@ -33,6 +33,7 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
   const [cursor, setCursor] = useState(0);
   const [textInput, setTextInput] = useState("");
   const [running, setRunning] = useState(false);
+  const [loaderFrameIndex, setLoaderFrameIndex] = useState(0);
   const [pickingFile, setPickingFile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const currentStep = definition.steps[currentStepId];
@@ -58,8 +59,22 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
       transitionToNextStep(currentStepId, nextStepId, setStepHistory, setCurrentStepId),
     ).finally(() => {
       setRunning(false);
+      exit();
     });
   }, [currentStepId, running]);
+
+  useEffect(() => {
+    if (!running || currentStep?.type !== "execute") {
+      setLoaderFrameIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setLoaderFrameIndex((value) => (value + 1) % EXECUTE_LOADER_FRAMES.length);
+    }, 90);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [running, currentStep?.type]);
 
   useInput((input, key) => {
     if (key.escape || input === "q") {
@@ -223,7 +238,7 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
           ))}
         </Stack>
       ) : null}
-      {renderStep(currentStep, state, cursor, textInput, running)}
+      {renderStep(currentStep, state, cursor, textInput, running, loaderFrameIndex)}
       {errorMessage ? <Text color={palette.danger}>{errorMessage}</Text> : null}
       <MutedLine>Press B to go back to the previous menu or Q to quit.</MutedLine>
     </Stack>
@@ -236,6 +251,7 @@ function renderStep(
   cursor: number,
   textInput: string,
   running: boolean,
+  loaderFrameIndex: number,
 ) {
   if (!step) {
     return <Text color={palette.danger}>Flow step is missing.</Text>;
@@ -259,9 +275,10 @@ function renderStep(
     return <NumberStepView title={step.title} helpText={step.helpText} value={textInput} />;
   }
   if (step.type === "execute") {
+    const loaderFrame = EXECUTE_LOADER_FRAMES[loaderFrameIndex] ?? EXECUTE_LOADER_FRAMES[0];
     return (
       <Box flexDirection="row" columnGap={1}>
-        <Text color={palette.warn}>{symbols.spinner}</Text>
+        <Text color={palette.warn}>{loaderFrame}</Text>
         <Text color={palette.text}>{running ? "Running ffmpeg..." : "Preparing..."}</Text>
       </Box>
     );
@@ -296,6 +313,17 @@ async function runExecutionStep(
   const nextStepId = step.resolveNextStepId(nextState, result);
   goToNextStep(definition.steps[nextStepId] ? nextStepId : definition.initialStepId);
 }
+
+const EXECUTE_LOADER_FRAMES = [
+  "<( ^_^ )>  .  .  .  ffmpeg",
+  "<( ^_^ )>  o  .  .  ffmpeg",
+  "<( ^_^ )>  O  o  .  ffmpeg",
+  "<( ^_^ )>  @  O  o  ffmpeg",
+  "<( ^_^ )>  #  @  O  ffmpeg",
+  "<( ^_^ )>  @  O  o  ffmpeg",
+  "<( ^_^ )>  O  o  .  ffmpeg",
+  "<( ^_^ )>  o  .  .  ffmpeg",
+] as const;
 
 function transitionToNextStep(
   currentStepId: string,
