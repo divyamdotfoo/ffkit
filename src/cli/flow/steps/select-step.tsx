@@ -21,8 +21,14 @@ export function SelectStepView({ step, selectedIndex }: SelectStepViewProps) {
       ) : null}
       {step.options.map((option, index) => {
         const selected = selectedIndex === index;
+        const isLast = index === step.options.length - 1;
         return (
-          <Box key={`${step.id}-${option.value}`} marginLeft={layout.chevronIndent} flexDirection="column">
+          <Box
+            key={`${step.id}-${option.value}`}
+            marginLeft={layout.chevronIndent}
+            marginBottom={isLast ? 0 : 1}
+            flexDirection="column"
+          >
             <Text color={selected ? palette.accentBlue : palette.text}>
               {selected ? symbols.chevron : " "}
               {" "}
