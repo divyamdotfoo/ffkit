@@ -6,5 +6,11 @@ export const videoCommands: CommandDescriptor[] = [
     category: "video",
     name: "Video (placeholder)",
     description: "Reserved for future video operations (trim, convert, …).",
+    inputFormats: [],
+    outputFormats: [],
+    parameters: [],
+    buildFfmpegArgs: () => {
+      throw new Error("Video placeholder cannot be executed.");
+    },
   },
 ];

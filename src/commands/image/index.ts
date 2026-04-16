@@ -6,5 +6,11 @@ export const imageCommands: CommandDescriptor[] = [
     category: "image",
     name: "Image (placeholder)",
     description: "Reserved for future image operations (resize, crop, …).",
+    inputFormats: [],
+    outputFormats: [],
+    parameters: [],
+    buildFfmpegArgs: () => {
+      throw new Error("Image placeholder cannot be executed.");
+    },
   },
 ];
