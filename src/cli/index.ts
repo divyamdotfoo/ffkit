@@ -1,12 +1,12 @@
 import { Command } from "commander";
+import { render } from "ink";
 import React from "react";
 
 import { registerAudioCli } from "./commands/audio/index.ts";
 import { registerImageCli } from "./commands/image/index.ts";
 import { registerVideoCli } from "./commands/video/index.ts";
-import { MainMenu } from "./components/main-menu.tsx";
+import { FlowScreen } from "./flow/screen.tsx";
 import { runFfmpegGuard } from "./guards/ffmpeg-guard.ts";
-import { printStaticInk } from "./render-ui.ts";
 import { startMcpServer } from "../mcp/server.ts";
 import { createApp } from "../server/app.ts";
 
@@ -17,19 +17,25 @@ export function createCliProgram(): Command {
 
   program
     .name("ffkity")
-    .description("FFmpeg helper — CLI, HTTP API, and MCP (skeleton).")
+    .description("FFmpeg helper — CLI, HTTP API, and MCP.")
     .version("0.0.1")
     .action(async () => {
-      printStaticInk(React.createElement(MainMenu));
+      const instance = render(React.createElement(FlowScreen), {
+        stdout: process.stdout,
+        stdin: process.stdin,
+        stderr: process.stderr,
+        exitOnCtrlC: true,
+      });
+      await instance.waitUntilExit();
     });
 
-  registerImageCli(program);
   registerAudioCli(program);
+  registerImageCli(program);
   registerVideoCli(program);
 
   program
     .command("serve")
-    .description("Start HTTP API server (Express skeleton)")
+    .description("Start HTTP API server (Express)")
     .option("--port <port>", "port to listen on", "3000")
     .action((opts: { port: string }) => {
       const app = createApp();
@@ -46,7 +52,7 @@ export function createCliProgram(): Command {
 
   program
     .command("mcp")
-    .description("Start MCP server over stdio (skeleton)")
+    .description("Start MCP server over stdio")
     .action(async () => {
       await startMcpServer();
     });

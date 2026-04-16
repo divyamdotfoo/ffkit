@@ -1,14 +1,20 @@
 import { type Command } from "commander";
+import { render } from "ink";
 import React from "react";
 
-import { CategoryPlaceholder } from "../../components/category-placeholder.tsx";
-import { printStaticInk } from "../../render-ui.ts";
+import { FlowScreen } from "../../flow/screen.tsx";
 
 export function registerVideoCli(program: Command) {
   program
     .command("video")
-    .description("Video operations (skeleton)")
+    .description("Video operations")
     .action(async () => {
-      printStaticInk(React.createElement(CategoryPlaceholder, { category: "video" }));
+      const instance = render(React.createElement(FlowScreen, { startScope: "video" }), {
+        stdout: process.stdout,
+        stdin: process.stdin,
+        stderr: process.stderr,
+        exitOnCtrlC: true,
+      });
+      await instance.waitUntilExit();
     });
 }
