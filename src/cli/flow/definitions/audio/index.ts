@@ -4,6 +4,8 @@ import type { FlowDefinition, FlowState, FlowStep } from "../../types.ts";
 import { getAudioConvertExecutionParams, getAudioConvertSteps } from "./convert.ts";
 import { getAudioNormalizeExecutionParams, getAudioNormalizeSteps } from "./normalize.ts";
 import { getAudioTrimExecutionParams, getAudioTrimSteps } from "./trim.ts";
+import { getImageExecutionParams, getImageFlowSteps } from "../image/index.ts";
+import { getVideoExecutionParams, getVideoFlowSteps } from "../video/index.ts";
 
 interface AudioFlowOptions {
   startAtScopeSelect: boolean;
@@ -11,11 +13,9 @@ interface AudioFlowOptions {
 }
 
 export function createAudioFlowDefinition(options: AudioFlowOptions): FlowDefinition {
-  const commandOptions = listCommandsByCategory("audio").map((command) => ({
-    label: command.name,
-    value: command.id,
-    description: command.description,
-  }));
+  const audioCommandOptions = buildCommandOptions("audio");
+  const imageCommandOptions = buildCommandOptions("image");
+  const videoCommandOptions = buildCommandOptions("video");
 
   const flowSteps: FlowStep[] = [
     ...(options.startAtScopeSelect || options.startScope
@@ -26,12 +26,30 @@ export function createAudioFlowDefinition(options: AudioFlowOptions): FlowDefini
       type: "select",
       title: "Choose audio feature",
       valueKey: "commandId",
-      options: commandOptions,
+      options: audioCommandOptions,
+      resolveNextStepId: (value) => `${value}.inputPath`,
+    },
+    {
+      id: "image.command",
+      type: "select",
+      title: "Choose image feature",
+      valueKey: "commandId",
+      options: imageCommandOptions,
+      resolveNextStepId: (value) => `${value}.inputPath`,
+    },
+    {
+      id: "video.command",
+      type: "select",
+      title: "Choose video feature",
+      valueKey: "commandId",
+      options: videoCommandOptions,
       resolveNextStepId: (value) => `${value}.inputPath`,
     },
     ...getAudioConvertSteps(),
     ...getAudioTrimSteps(),
     ...getAudioNormalizeSteps(),
+    ...getImageFlowSteps(),
+    ...getVideoFlowSteps(),
     createExecuteStep(),
     createResultStep(),
   ];
@@ -55,8 +73,11 @@ function getInitialStepId(options: AudioFlowOptions): string {
   if (options.startScope === "audio") {
     return "audio.command";
   }
-  if (options.startScope === "image" || options.startScope === "video") {
-    return "root.scopeResult";
+  if (options.startScope === "image") {
+    return "image.command";
+  }
+  if (options.startScope === "video") {
+    return "video.command";
   }
   if (options.startAtScopeSelect) {
     return "root.scope";
@@ -79,14 +100,14 @@ function createScopeStep(): FlowStep {
       {
         label: "image",
         value: "image",
-        description: "Image operations will be added in upcoming steps.",
-        nextStepId: "root.scopeResult",
+        description: "Resize, remove backgrounds, and convert image formats.",
+        nextStepId: "image.command",
       },
       {
         label: "video",
         value: "video",
-        description: "Video operations will be added in upcoming steps.",
-        nextStepId: "root.scopeResult",
+        description: "Convert, retime, screenshot, and create GIFs from video.",
+        nextStepId: "video.command",
       },
     ],
     valueKey: "scope",
@@ -103,7 +124,13 @@ function createScopeResultStep(): FlowStep {
       if (scope === "audio") {
         return ["Opening audio commands...", "Press Enter to continue."];
       }
-      return [`${scope} commands are not wired yet.`, "Press B to go back or Enter to exit."];
+      if (scope === "image") {
+        return ["Opening image commands...", "Press Enter to continue."];
+      }
+      if (scope === "video") {
+        return ["Opening video commands...", "Press Enter to continue."];
+      }
+      return ["Opening selected scope...", "Press Enter to continue."];
     },
   };
 }
@@ -130,6 +157,12 @@ export function getCommandExecutionParams(values: Record<string, unknown>): Reco
   if (commandId === "audio_normalize") {
     return getAudioNormalizeExecutionParams(values);
   }
+  if (commandId.startsWith("image_")) {
+    return getImageExecutionParams(values);
+  }
+  if (commandId.startsWith("video_")) {
+    return getVideoExecutionParams(values);
+  }
   return {
     inputPath: values.inputPath,
     outputPath: values.outputPath,
@@ -138,22 +171,30 @@ export function getCommandExecutionParams(values: Record<string, unknown>): Reco
 
 function createExecuteStep(): FlowStep {
   return {
-    id: "audio.execute",
+    id: "media.execute",
     type: "execute",
     title: "Execute command",
     resolveCommandId: (state) => String(state.values.commandId ?? ""),
     buildParams: (state) => getCommandExecutionParams(state.values),
-    resolveNextStepId: () => "audio.result",
+    resolveNextStepId: () => "media.result",
   };
 }
 
 function createResultStep(): FlowStep {
   return {
-    id: "audio.result",
+    id: "media.result",
     type: "result",
     title: "Result",
     resolveLines: (state) => buildFlowResultLines(state),
   };
+}
+
+function buildCommandOptions(category: Category) {
+  return listCommandsByCategory(category).map((command) => ({
+    label: command.name,
+    value: command.id,
+    description: command.description,
+  }));
 }
 
 function toStepMap(steps: FlowStep[]): Record<string, FlowStep> {

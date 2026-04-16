@@ -59,7 +59,7 @@ export function getAudioConvertSteps(): FlowStep[] {
       valueKey: "outputPath",
       required: false,
       defaultValue: (state) => getAudioOutputPath(state),
-      resolveNextStepId: () => "audio.execute",
+      resolveNextStepId: () => "media.execute",
     },
   ];
 }
