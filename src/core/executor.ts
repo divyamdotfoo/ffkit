@@ -5,6 +5,7 @@ import { extname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import type { CommandDescriptor } from "../types.ts";
+import { assertSafeFfmpegInputPath, assertSafeFfmpegOutputPath } from "./ffmpeg-input-guard.ts";
 import { validateCommandParams } from "./validator.ts";
 
 export interface ExecutionResult {
@@ -20,6 +21,7 @@ export async function executeCommand(
   try {
     validateCommandParams(command, params);
     const outputPath = getRequiredStringParam(params, "outputPath");
+    assertSafeFfmpegOutputPath(outputPath);
 
     if (!isSupportedFormat(outputPath, command.outputFormats)) {
       return {
@@ -37,6 +39,7 @@ export async function executeCommand(
         return { success: false, message: `Missing or invalid parameter "inputPaths".` };
       }
       for (const filePath of resolvedInputPaths) {
+        assertSafeFfmpegInputPath(filePath);
         if (!existsSync(filePath)) {
           return { success: false, message: `Input file not found: ${filePath}` };
         }
@@ -50,6 +53,7 @@ export async function executeCommand(
       inputPath = resolvedInputPaths[0] ?? "";
     } else {
       inputPath = resolve(getRequiredStringParam(params, "inputPath"));
+      assertSafeFfmpegInputPath(inputPath);
       if (!existsSync(inputPath)) {
         return { success: false, message: `Input file not found: ${inputPath}` };
       }

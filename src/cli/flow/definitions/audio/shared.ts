@@ -23,7 +23,8 @@ export function getAudioOutputPath(state: FlowState): string {
   const parsed = parse(inputPath);
   const dir = dirname(inputPath);
   const extension =
-    (commandId === "audio_convert" || commandId === "audio_merge") && targetFormat
+    (commandId === "audio_convert" || commandId === "audio_merge" || commandId === "audio_remove_silence") &&
+    targetFormat
       ? targetFormat
       : extname(inputPath).replace(".", "");
   return join(dir, `${parsed.name}.ffkity.${extension}`);

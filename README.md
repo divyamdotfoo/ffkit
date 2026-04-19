@@ -13,7 +13,7 @@ CLI, MCP server, and Express server for FFmpeg workflows. Work in progress.
 - [x] Merge clips: Concatenate audio files
 - [ ] Stereo to mono: Convert stereo to mono
 - [ ] Extract channel: Extract left or right channel
-- [ ] Remove silence: Strip silence from audio
+- [x] Remove silence: Strip silence from audio
 - [ ] Speed change: Adjust playback speed
 - [ ] Bitrate reduce: Lower bitrate for compression
 - [ ] Preview extract: Export first N seconds

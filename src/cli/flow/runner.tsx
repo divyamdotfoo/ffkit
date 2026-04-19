@@ -101,7 +101,6 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
       transitionToNextStep(currentStepId, nextStepId, setStepHistory, setCurrentStepId),
     ).finally(() => {
       setRunning(false);
-      exit();
     });
   }, [currentStepId, running]);
 
@@ -203,9 +202,15 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
           setErrorMessage("This field is required.");
           return;
         }
-        const nextValues = { ...state.values, [currentStep.valueKey]: trimmed };
+        let resolved = trimmed;
+        if (resolved.length === 0 && currentStep.defaultValue !== undefined) {
+          resolved = currentStep
+            .defaultValue({ ...state, values: { ...state.values, [currentStep.valueKey]: "" } })
+            .trim();
+        }
+        const nextValues = { ...state.values, [currentStep.valueKey]: resolved };
         setState((prev) => ({ ...prev, values: nextValues }));
-        appendAnswerHistory(setAnswerHistory, currentStep.id, currentStep.title, trimmed);
+        appendAnswerHistory(setAnswerHistory, currentStep.id, currentStep.title, resolved);
         transitionToNextStep(
           currentStepId,
           currentStep.resolveNextStepId({ ...state, values: nextValues }),
