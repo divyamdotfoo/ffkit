@@ -84,6 +84,59 @@ export const videoCommands: CommandDescriptor[] = [
     },
   },
   {
+    id: "video_merge",
+    category: "video",
+    name: "Merge clips",
+    description:
+      "Concatenate multiple videos in order using FFmpeg's concat demuxer and re-encode to the target container. Works best when clips share similar resolution and audio layout; mixed or missing audio tracks may fail.",
+    inputFormats: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+    outputFormats: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+    parameters: [
+      {
+        key: "inputPaths",
+        label: "Input video paths",
+        type: "paths",
+        required: true,
+        minItems: 2,
+        description: "Ordered list of server-local video files to concatenate.",
+      },
+      {
+        key: "targetFormat",
+        label: "Target format",
+        type: "enum",
+        required: true,
+        description: "Output file extension/format.",
+        options: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+      },
+    ],
+    buildFfmpegArgs: ({ outputPath, concatListPath }) => {
+      if (!concatListPath) {
+        throw new Error("Missing concat list path for video_merge.");
+      }
+      const outputExt = getOutputExt(outputPath);
+      const codecs = getCodecsForContainer(outputExt);
+      return [
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        concatListPath,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a?",
+        "-vf",
+        "setsar=1",
+        "-c:v",
+        codecs.videoCodec,
+        ...codecs.videoCodecArgs,
+        ...(codecs.audioCodec ? ["-c:a", codecs.audioCodec, ...codecs.audioCodecArgs] : []),
+        outputPath,
+      ];
+    },
+  },
+  {
     id: "video_speed",
     category: "video",
     name: "Change playback speed",

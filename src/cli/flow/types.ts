@@ -22,6 +22,10 @@ export interface FileStep extends StepBase {
   type: "file";
   valueKey: string;
   required?: boolean;
+  /** When true, native picker allows multiple files; value is stored as `string[]` under `valueKey`. */
+  multiSelect?: boolean;
+  /** Minimum number of paths when `multiSelect` is true (paste or picker). */
+  minFiles?: number;
   defaultValue?: (state: FlowState) => string;
   pickerTitle?: string;
   resolveNextStepId: (state: FlowState) => string;
@@ -31,6 +35,11 @@ export interface SelectStep extends StepBase {
   type: "select";
   options: SelectOption[];
   valueKey?: string;
+  /** When set, the chosen option `value` is appended to this array on the flow state instead of writing `valueKey`. */
+  accumulateSelectionToKey?: string;
+  resolveDynamicOptions?: (state: FlowState) => SelectOption[];
+  resolveDynamicTitle?: (state: FlowState) => string;
+  resolveDynamicHelpText?: (state: FlowState) => string | undefined;
   resolveNextStepId?: (value: string, state: FlowState) => string;
 }
 

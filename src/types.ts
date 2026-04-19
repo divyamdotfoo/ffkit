@@ -1,6 +1,6 @@
 export type Category = "image" | "audio" | "video";
 
-export type ParameterType = "string" | "number" | "enum" | "file";
+export type ParameterType = "string" | "number" | "enum" | "file" | "paths";
 
 export interface CommandParameter {
   key: string;
@@ -11,12 +11,16 @@ export interface CommandParameter {
   options?: string[];
   min?: number;
   max?: number;
+  /** Minimum number of paths when `type` is `"paths"`. */
+  minItems?: number;
 }
 
 export interface BuildFfmpegArgsInput {
   inputPath: string;
   outputPath: string;
   params: Record<string, unknown>;
+  /** Populated by the executor for concat-demuxer commands (e.g. `video_merge`). */
+  concatListPath?: string;
 }
 
 export interface CommandDescriptor {

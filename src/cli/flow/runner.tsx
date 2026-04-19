@@ -5,7 +5,7 @@ import { getCommand } from "../../core/command-registry.ts";
 import { executeCommand } from "../../core/executor.ts";
 import { Header, MutedLine, Stack } from "../theme/primitives.tsx";
 import { palette, symbols } from "../theme/tokens.ts";
-import { pickFilePath } from "./file-picker.ts";
+import { pickFilePath, pickFilePaths, splitPickedPaths } from "./file-picker.ts";
 import { NumberStepView } from "./steps/number-step.tsx";
 import { ResultStepView } from "./steps/result-step.tsx";
 import { SelectStepView } from "./steps/select-step.tsx";
@@ -44,11 +44,50 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
     if (currentStep?.type === "text" || currentStep?.type === "number" || currentStep?.type === "file") {
       const defaultValue = currentStep.defaultValue?.(state);
       const existing = state.values[currentStep.valueKey];
+      if (currentStep.type === "file" && currentStep.multiSelect && Array.isArray(existing)) {
+        setTextInput(existing.join("\n"));
+        return;
+      }
       setTextInput(typeof existing === "string" ? existing : defaultValue ?? "");
       return;
     }
     setTextInput("");
   }, [currentStepId]);
+
+  const dynamicSelectOptionsLength =
+    currentStep?.type === "select" && currentStep.resolveDynamicOptions
+      ? (() => {
+          const opts = currentStep.resolveDynamicOptions(state);
+          return opts.length;
+        })()
+      : 0;
+
+  useEffect(() => {
+    if (currentStep?.type !== "select") {
+      return;
+    }
+    const options = resolveSelectDisplayOptions(currentStep, state);
+    if (options.length === 0) {
+      return;
+    }
+    setCursor((previous) => Math.min(previous, options.length - 1));
+  }, [currentStepId, dynamicSelectOptionsLength]);
+
+  useEffect(() => {
+    if (currentStep?.id !== "video_merge.inputPath" || currentStep.type !== "file") {
+      return;
+    }
+    setState((previous) => {
+      const ordered = previous.values.mergeOrderedPaths;
+      if (!Array.isArray(ordered) || ordered.length === 0) {
+        return previous;
+      }
+      return {
+        ...previous,
+        values: { ...previous.values, mergeOrderedPaths: [] },
+      };
+    });
+  }, [currentStepId, currentStep?.id, currentStep?.type]);
 
   useEffect(() => {
     if (!currentStep || currentStep.type !== "execute" || running) {
@@ -90,36 +129,55 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
     }
 
     if (currentStep.type === "select") {
+      const displayOptions = resolveSelectDisplayOptions(currentStep, state);
       if (key.upArrow) {
         setCursor((value) => Math.max(0, value - 1));
         return;
       }
       if (key.downArrow) {
-        setCursor((value) => Math.min(currentStep.options.length - 1, value + 1));
+        setCursor((value) => Math.min(displayOptions.length - 1, value + 1));
         return;
       }
       if (key.return) {
-        const option = currentStep.options[cursor];
+        const option = displayOptions[cursor];
         if (!option) {
           return;
         }
-        const nextValues = {
-          ...state.values,
-          ...(currentStep.valueKey ? { [currentStep.valueKey]: option.value } : {}),
-        };
+        const accumulateKey = currentStep.accumulateSelectionToKey;
+        const nextValues =
+          accumulateKey !== undefined
+            ? {
+                ...state.values,
+                [accumulateKey]: [
+                  ...(Array.isArray(state.values[accumulateKey])
+                    ? (state.values[accumulateKey] as string[])
+                    : []),
+                  option.value,
+                ],
+              }
+            : {
+                ...state.values,
+                ...(currentStep.valueKey ? { [currentStep.valueKey]: option.value } : {}),
+              };
+        const nextState: FlowState = { ...state, values: nextValues };
         setState((prev) => ({ ...prev, values: nextValues }));
-        appendAnswerHistory(
-          setAnswerHistory,
-          currentStep.id,
-          currentStep.title,
-          option.label,
-        );
+        const historyStepId =
+          accumulateKey !== undefined
+            ? `${currentStep.id}#${(nextValues[accumulateKey] as string[]).length}`
+            : currentStep.id;
+        const historyQuestion =
+          currentStep.resolveDynamicTitle?.(nextState) ?? currentStep.title;
+        appendAnswerHistory(setAnswerHistory, historyStepId, historyQuestion, option.label);
         const nextStepId =
-          option.nextStepId ??
-          currentStep.resolveNextStepId?.(option.value, { ...state, values: nextValues });
-        if (nextStepId) {
-          transitionToNextStep(currentStepId, nextStepId, setStepHistory, setCurrentStepId);
+          option.nextStepId ?? currentStep.resolveNextStepId?.(option.value, nextState);
+        if (!nextStepId) {
+          return;
         }
+        if (nextStepId === currentStepId) {
+          setCursor(0);
+          return;
+        }
+        transitionToNextStep(currentStepId, nextStepId, setStepHistory, setCurrentStepId);
       }
       return;
     }
@@ -156,6 +214,28 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
       if (currentStep.type === "file") {
         const trimmed = textInput.trim();
         if (trimmed.length > 0) {
+          if (currentStep.multiSelect) {
+            const paths = splitPickedPaths(trimmed);
+            const minFiles = currentStep.minFiles ?? 2;
+            if (paths.length < minFiles) {
+              setErrorMessage(`Enter at least ${minFiles} paths (one per line or separated by |).`);
+              return;
+            }
+            const nextValues = {
+              ...state.values,
+              [currentStep.valueKey]: paths,
+              mergeOrderedPaths: [],
+            };
+            setState((prev) => ({ ...prev, values: nextValues }));
+            appendAnswerHistory(setAnswerHistory, currentStep.id, currentStep.title, `${paths.length} files`);
+            transitionToNextStep(
+              currentStepId,
+              currentStep.resolveNextStepId({ ...state, values: nextValues }),
+              setStepHistory,
+              setCurrentStepId,
+            );
+            return;
+          }
           const nextValues = { ...state.values, [currentStep.valueKey]: trimmed };
           setState((prev) => ({ ...prev, values: nextValues }));
           appendAnswerHistory(setAnswerHistory, currentStep.id, currentStep.title, trimmed);
@@ -245,6 +325,10 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
   );
 }
 
+function resolveSelectDisplayOptions(step: Extract<FlowStep, { type: "select" }>, state: FlowState) {
+  return step.resolveDynamicOptions?.(state) ?? step.options;
+}
+
 function renderStep(
   step: FlowStep | undefined,
   state: FlowState,
@@ -257,19 +341,30 @@ function renderStep(
     return <Text color={palette.danger}>Flow step is missing.</Text>;
   }
   if (step.type === "select") {
-    return <SelectStepView step={step} selectedIndex={cursor} />;
+    const displayOptions = resolveSelectDisplayOptions(step, state);
+    const displayTitle = step.resolveDynamicTitle?.(state) ?? step.title;
+    const displayHelpText =
+      step.resolveDynamicHelpText !== undefined ? step.resolveDynamicHelpText(state) : step.helpText;
+    return (
+      <SelectStepView
+        step={step}
+        selectedIndex={cursor}
+        displayOptions={displayOptions}
+        displayTitle={displayTitle}
+        displayHelpText={displayHelpText}
+      />
+    );
   }
   if (step.type === "text") {
     return <TextStepView title={step.title} helpText={step.helpText} value={textInput} />;
   }
   if (step.type === "file") {
-    return (
-      <TextStepView
-        title={step.title}
-        helpText={step.helpText ?? "Press Enter to open the file picker, or paste a full path manually."}
-        value={textInput}
-      />
-    );
+    const fileHelp =
+      step.helpText ??
+      (step.multiSelect
+        ? "Press Enter for multi-file picker, or paste paths (one per line or separated by |)."
+        : "Press Enter to open the file picker, or paste a full path manually.");
+    return <TextStepView title={step.title} helpText={fileHelp} value={textInput} />;
   }
   if (step.type === "number") {
     return <NumberStepView title={step.title} helpText={step.helpText} value={textInput} />;
@@ -383,6 +478,40 @@ async function openPickerAndAdvance(input: {
 }): Promise<void> {
   input.setPickingFile(true);
   input.setErrorMessage(undefined);
+
+  if (input.currentStep.multiSelect) {
+    const picked = pickFilePaths(input.currentStep.pickerTitle ?? "Choose input files");
+    input.setPickingFile(false);
+    const minFiles = input.currentStep.minFiles ?? 2;
+    if (picked.length < minFiles) {
+      input.setErrorMessage(
+        picked.length === 0
+          ? "File picker cancelled or unavailable. Paste full paths (one per line), or try again."
+          : `Pick at least ${minFiles} files (selected ${picked.length}).`,
+      );
+      return;
+    }
+    const nextValues = {
+      ...input.state.values,
+      [input.currentStep.valueKey]: picked,
+      mergeOrderedPaths: [],
+    };
+    input.setState((previous) => ({ ...previous, values: nextValues }));
+    appendAnswerHistory(
+      input.setAnswerHistory,
+      input.currentStep.id,
+      input.currentStep.title,
+      `${picked.length} files`,
+    );
+    const nextStepId = input.currentStep.resolveNextStepId({ ...input.state, values: nextValues });
+    if (!input.definition.steps[nextStepId]) {
+      input.setCurrentStepId(input.definition.initialStepId);
+      return;
+    }
+    transitionToNextStep(input.currentStepId, nextStepId, input.setStepHistory, input.setCurrentStepId);
+    return;
+  }
+
   const picked = pickFilePath(input.currentStep.pickerTitle ?? "Choose input file");
   input.setPickingFile(false);
 

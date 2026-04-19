@@ -24,6 +24,21 @@ export function validateCommandParams(
       continue;
     }
 
+    if (parameter.type === "paths") {
+      if (!Array.isArray(value)) {
+        throw new Error(`Parameter "${parameter.key}" must be an array of path strings.`);
+      }
+      const paths = value.map((entry) => (typeof entry === "string" ? entry.trim() : ""));
+      if (paths.some((p) => p.length === 0)) {
+        throw new Error(`Parameter "${parameter.key}" must contain only non-empty strings.`);
+      }
+      const minItems = typeof parameter.minItems === "number" ? parameter.minItems : 2;
+      if (paths.length < minItems) {
+        throw new Error(`Parameter "${parameter.key}" must contain at least ${minItems} path(s).`);
+      }
+      continue;
+    }
+
     if (parameter.type === "number") {
       const numberValue = ensureNumber(parameter.key, value);
       if (typeof parameter.min === "number" && numberValue < parameter.min) {

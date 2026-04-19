@@ -3,7 +3,13 @@ import { dirname, extname, join, parse } from "node:path";
 import type { FlowState } from "../../types.ts";
 
 export function getVideoOutputPath(state: FlowState): string {
-  const inputPath = asString(state.values.inputPath);
+  const commandId = asString(state.values.commandId);
+  const mergeOrdered =
+    commandId === "video_merge" && Array.isArray(state.values.mergeOrderedPaths)
+      ? state.values.mergeOrderedPaths.filter((path): path is string => typeof path === "string" && path.length > 0)
+      : [];
+  const inputPath =
+    mergeOrdered.length > 0 ? mergeOrdered[0]! : asString(state.values.inputPath);
   const outputPath = asString(state.values.outputPath);
   if (outputPath) {
     return outputPath;
@@ -11,7 +17,6 @@ export function getVideoOutputPath(state: FlowState): string {
   if (!inputPath) {
     return "";
   }
-  const commandId = asString(state.values.commandId);
   const targetFormat = asString(state.values.targetFormat);
   const parsed = parse(inputPath);
   const dir = dirname(inputPath);
@@ -32,7 +37,10 @@ export function asString(value: unknown): string {
 }
 
 function getVideoExtension(commandId: string, inputPath: string, targetFormat: string): string {
-  if ((commandId === "video_convert" || commandId === "video_screenshot") && targetFormat) {
+  if (
+    (commandId === "video_convert" || commandId === "video_screenshot" || commandId === "video_merge") &&
+    targetFormat
+  ) {
     return targetFormat;
   }
   if (commandId === "video_gif") {
