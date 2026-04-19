@@ -1,51 +1,51 @@
 import type { FlowStep } from "../../types.ts";
-import { asString, getAudioOutputPath } from "./shared.ts";
+import { asString, getVideoOutputPath } from "./shared.ts";
 
-export function getAudioTrimSteps(): FlowStep[] {
+export function getVideoTrimSteps(): FlowStep[] {
   return [
     {
-      id: "audio_trim.inputPath",
+      id: "video_trim.inputPath",
       type: "file",
-      title: "Input audio file",
+      title: "Input video file",
       helpText: "Press Enter to open native file picker, O to retry, or paste path.",
-      pickerTitle: "Choose audio file to trim",
+      pickerTitle: "Choose video file to trim",
       valueKey: "inputPath",
       required: true,
-      resolveNextStepId: () => "audio_trim.startTimestamp",
+      resolveNextStepId: () => "video_trim.startTimestamp",
     },
     {
-      id: "audio_trim.startTimestamp",
+      id: "video_trim.startTimestamp",
       type: "text",
       title: "Start timestamp (HH:MM:SS)",
       helpText: "Inclusive start, e.g. 00:00:10 or 1:05:00.5",
       valueKey: "startTimestamp",
       required: true,
       defaultValue: () => "00:00:00",
-      resolveNextStepId: () => "audio_trim.endTimestamp",
+      resolveNextStepId: () => "video_trim.endTimestamp",
     },
     {
-      id: "audio_trim.endTimestamp",
+      id: "video_trim.endTimestamp",
       type: "text",
       title: "End timestamp (HH:MM:SS)",
       helpText: "Must be after start, e.g. 00:05:30",
       valueKey: "endTimestamp",
       required: true,
-      resolveNextStepId: () => "audio_trim.outputPath",
+      resolveNextStepId: () => "video_trim.outputPath",
     },
     {
-      id: "audio_trim.outputPath",
+      id: "video_trim.outputPath",
       type: "text",
       title: "Output file path (optional)",
       helpText: "Press Enter to use generated default output path.",
       valueKey: "outputPath",
       required: false,
-      defaultValue: (state) => getAudioOutputPath(state),
+      defaultValue: (state) => getVideoOutputPath(state),
       resolveNextStepId: () => "media.execute",
     },
   ];
 }
 
-export function getAudioTrimExecutionParams(values: Record<string, unknown>): Record<string, unknown> {
+export function getVideoTrimExecutionParams(values: Record<string, unknown>): Record<string, unknown> {
   return {
     inputPath: asString(values.inputPath),
     outputPath: asString(values.outputPath),

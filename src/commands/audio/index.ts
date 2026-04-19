@@ -1,3 +1,4 @@
+import { parseHhMmSsTimestampToSeconds } from "../../core/parse-hh-mm-ss-timestamp.ts";
 import type { CommandDescriptor } from "../../types.ts";
 
 export const audioCommands: CommandDescriptor[] = [
@@ -49,30 +50,33 @@ export const audioCommands: CommandDescriptor[] = [
     id: "audio_trim",
     category: "audio",
     name: "Trim segment",
-    description: "Trim audio to a selected start time and duration.",
+    description:
+      "Trim audio from a start timestamp to an end timestamp (HH:MM:SS) using stream copy.",
     inputFormats: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
     outputFormats: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
     parameters: [
       {
-        key: "startSeconds",
-        label: "Start time (seconds)",
-        type: "number",
+        key: "startTimestamp",
+        label: "Start timestamp",
+        type: "string",
         required: true,
-        description: "Where to start the trimmed clip.",
-        min: 0,
+        description: "Inclusive start time as HH:MM:SS (hours may exceed 23; seconds may include decimals).",
       },
       {
-        key: "durationSeconds",
-        label: "Duration (seconds)",
-        type: "number",
+        key: "endTimestamp",
+        label: "End timestamp",
+        type: "string",
         required: true,
-        description: "Length of the output clip.",
-        min: 0.1,
+        description: "End time as HH:MM:SS; must be after start (clip length is end minus start).",
       },
     ],
     buildFfmpegArgs: ({ inputPath, outputPath, params }) => {
-      const startSeconds = Number(params.startSeconds ?? 0);
-      const durationSeconds = Number(params.durationSeconds ?? 0);
+      const startSeconds = parseHhMmSsTimestampToSeconds(params.startTimestamp, "startTimestamp");
+      const endSeconds = parseHhMmSsTimestampToSeconds(params.endTimestamp, "endTimestamp");
+      if (endSeconds <= startSeconds) {
+        throw new Error("endTimestamp must be after startTimestamp.");
+      }
+      const durationSeconds = endSeconds - startSeconds;
       return [
         "-ss",
         `${startSeconds}`,

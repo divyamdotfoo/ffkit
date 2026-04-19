@@ -106,7 +106,7 @@ function createScopeStep(): FlowStep {
       {
         label: "video",
         value: "video",
-        description: "Convert, retime, screenshot, and create GIFs from video.",
+        description: "Convert, trim, retime, screenshot, and create GIFs from video.",
         nextStepId: "video.command",
       },
     ],

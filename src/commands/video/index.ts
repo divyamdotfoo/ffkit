@@ -1,5 +1,6 @@
 import { extname } from "node:path";
 
+import { parseHhMmSsTimestampToSeconds } from "../../core/parse-hh-mm-ss-timestamp.ts";
 import type { CommandDescriptor } from "../../types.ts";
 
 export const videoCommands: CommandDescriptor[] = [
@@ -34,6 +35,50 @@ export const videoCommands: CommandDescriptor[] = [
         codecs.videoCodec,
         ...codecs.videoCodecArgs,
         ...(codecs.audioCodec ? ["-c:a", codecs.audioCodec, ...codecs.audioCodecArgs] : []),
+        outputPath,
+      ];
+    },
+  },
+  {
+    id: "video_trim",
+    category: "video",
+    name: "Trim segment",
+    description:
+      "Trim video from a start timestamp to an end timestamp (HH:MM:SS) using stream copy (fast; cuts may align to keyframes).",
+    inputFormats: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+    outputFormats: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+    parameters: [
+      {
+        key: "startTimestamp",
+        label: "Start timestamp",
+        type: "string",
+        required: true,
+        description: "Inclusive start time as HH:MM:SS (hours may exceed 23; seconds may include decimals).",
+      },
+      {
+        key: "endTimestamp",
+        label: "End timestamp",
+        type: "string",
+        required: true,
+        description: "End time as HH:MM:SS; must be after start (clip length is end minus start).",
+      },
+    ],
+    buildFfmpegArgs: ({ inputPath, outputPath, params }) => {
+      const startSeconds = parseHhMmSsTimestampToSeconds(params.startTimestamp, "startTimestamp");
+      const endSeconds = parseHhMmSsTimestampToSeconds(params.endTimestamp, "endTimestamp");
+      if (endSeconds <= startSeconds) {
+        throw new Error("endTimestamp must be after startTimestamp.");
+      }
+      const durationSeconds = endSeconds - startSeconds;
+      return [
+        "-ss",
+        `${startSeconds}`,
+        "-i",
+        inputPath,
+        "-t",
+        `${durationSeconds}`,
+        "-c",
+        "copy",
         outputPath,
       ];
     },
