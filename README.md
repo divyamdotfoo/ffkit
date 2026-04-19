@@ -10,7 +10,7 @@ CLI, MCP server, and Express server for FFmpeg workflows. Work in progress.
 - [ ] Fade in/out: Add fade effect
 - [ ] Adjust volume: Change volume by dB or percentage
 - [ ] Extract from video: Pull audio from video files
-- [ ] Merge clips: Concatenate audio files
+- [x] Merge clips: Concatenate audio files
 - [ ] Stereo to mono: Convert stereo to mono
 - [ ] Extract channel: Extract left or right channel
 - [ ] Remove silence: Strip silence from audio

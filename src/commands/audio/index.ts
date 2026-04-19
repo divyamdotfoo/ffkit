@@ -112,6 +112,69 @@ export const audioCommands: CommandDescriptor[] = [
       return ["-i", inputPath, "-af", getLoudNormFilter(strength), outputPath];
     },
   },
+  {
+    id: "audio_merge",
+    category: "audio",
+    name: "Merge clips",
+    description:
+      "Concatenate multiple audio files in order using FFmpeg's concat demuxer and re-encode to the target format. Works best when clips share similar sample rate and channel layout; mixed layouts may fail.",
+    inputFormats: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
+    outputFormats: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
+    parameters: [
+      {
+        key: "inputPaths",
+        label: "Input audio paths",
+        type: "paths",
+        required: true,
+        minItems: 2,
+        description: "Ordered list of server-local audio files to concatenate.",
+      },
+      {
+        key: "targetFormat",
+        label: "Target format",
+        type: "enum",
+        required: true,
+        description: "Output file extension/format.",
+        options: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
+      },
+      {
+        key: "qualityProfile",
+        label: "Quality profile",
+        type: "enum",
+        required: true,
+        description: "Balanced defaults for most users.",
+        options: ["smaller-file", "balanced", "higher-quality"],
+      },
+      {
+        key: "encodingMode",
+        label: "Encoding mode",
+        type: "enum",
+        required: true,
+        description: "Simple encoding strategy for common workflows.",
+        options: ["compatible", "efficient"],
+      },
+    ],
+    buildFfmpegArgs: ({ outputPath, concatListPath, params }) => {
+      if (!concatListPath) {
+        throw new Error("Missing concat list path for audio_merge.");
+      }
+      const qualityProfile = String(params.qualityProfile ?? "balanced");
+      const encodingMode = String(params.encodingMode ?? "compatible");
+      return [
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        concatListPath,
+        "-vn",
+        "-map",
+        "0:a",
+        ...getEncodingArgsForProfile(qualityProfile, encodingMode),
+        outputPath,
+      ];
+    },
+  },
 ];
 
 function getEncodingArgsForProfile(qualityProfile: string, encodingMode: string): string[] {

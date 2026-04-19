@@ -3,7 +3,15 @@ import { dirname, extname, join, parse } from "node:path";
 import type { FlowState } from "../../types.ts";
 
 export function getAudioOutputPath(state: FlowState): string {
-  const inputPath = asString(state.values.inputPath);
+  const commandId = asString(state.values.commandId);
+  const mergeOrdered =
+    commandId === "audio_merge" && Array.isArray(state.values.audioMergeOrderedPaths)
+      ? state.values.audioMergeOrderedPaths.filter(
+          (path): path is string => typeof path === "string" && path.length > 0,
+        )
+      : [];
+  const inputPath =
+    mergeOrdered.length > 0 ? mergeOrdered[0]! : asString(state.values.inputPath);
   const outputPath = asString(state.values.outputPath);
   if (outputPath) {
     return outputPath;
@@ -11,12 +19,11 @@ export function getAudioOutputPath(state: FlowState): string {
   if (!inputPath) {
     return "";
   }
-  const commandId = asString(state.values.commandId);
   const targetFormat = asString(state.values.targetFormat);
   const parsed = parse(inputPath);
   const dir = dirname(inputPath);
   const extension =
-    commandId === "audio_convert" && targetFormat
+    (commandId === "audio_convert" || commandId === "audio_merge") && targetFormat
       ? targetFormat
       : extname(inputPath).replace(".", "");
   return join(dir, `${parsed.name}.ffkity.${extension}`);

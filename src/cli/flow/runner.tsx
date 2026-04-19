@@ -74,18 +74,21 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
   }, [currentStepId, dynamicSelectOptionsLength]);
 
   useEffect(() => {
-    if (currentStep?.id !== "video_merge.inputPath" || currentStep.type !== "file") {
+    if (currentStep?.type !== "file" || !currentStep.multiSelect || !currentStep.multiSelectOrderResetKeys?.length) {
       return;
     }
+    const resetKeys = currentStep.multiSelectOrderResetKeys;
     setState((previous) => {
-      const ordered = previous.values.mergeOrderedPaths;
-      if (!Array.isArray(ordered) || ordered.length === 0) {
-        return previous;
+      let changed = false;
+      const values = { ...previous.values };
+      for (const key of resetKeys) {
+        const ordered = values[key];
+        if (Array.isArray(ordered) && ordered.length > 0) {
+          values[key] = [];
+          changed = true;
+        }
       }
-      return {
-        ...previous,
-        values: { ...previous.values, mergeOrderedPaths: [] },
-      };
+      return changed ? { ...previous, values } : previous;
     });
   }, [currentStepId, currentStep?.id, currentStep?.type]);
 
@@ -221,11 +224,7 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
               setErrorMessage(`Enter at least ${minFiles} paths (one per line or separated by |).`);
               return;
             }
-            const nextValues = {
-              ...state.values,
-              [currentStep.valueKey]: paths,
-              mergeOrderedPaths: [],
-            };
+            const nextValues = buildMultiSelectPickValues(state.values, currentStep.valueKey, paths, currentStep.multiSelectOrderResetKeys);
             setState((prev) => ({ ...prev, values: nextValues }));
             appendAnswerHistory(setAnswerHistory, currentStep.id, currentStep.title, `${paths.length} files`);
             transitionToNextStep(
@@ -327,6 +326,19 @@ export function FlowRunner({ definition }: FlowRunnerProps) {
 
 function resolveSelectDisplayOptions(step: Extract<FlowStep, { type: "select" }>, state: FlowState) {
   return step.resolveDynamicOptions?.(state) ?? step.options;
+}
+
+function buildMultiSelectPickValues(
+  baseValues: Record<string, unknown>,
+  valueKey: string,
+  paths: string[],
+  resetKeys?: string[],
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...baseValues, [valueKey]: paths };
+  for (const key of resetKeys ?? []) {
+    next[key] = [];
+  }
+  return next;
 }
 
 function renderStep(
@@ -491,11 +503,12 @@ async function openPickerAndAdvance(input: {
       );
       return;
     }
-    const nextValues = {
-      ...input.state.values,
-      [input.currentStep.valueKey]: picked,
-      mergeOrderedPaths: [],
-    };
+    const nextValues = buildMultiSelectPickValues(
+      input.state.values,
+      input.currentStep.valueKey,
+      picked,
+      input.currentStep.multiSelectOrderResetKeys,
+    );
     input.setState((previous) => ({ ...previous, values: nextValues }));
     appendAnswerHistory(
       input.setAnswerHistory,

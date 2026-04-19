@@ -26,6 +26,8 @@ export interface FileStep extends StepBase {
   multiSelect?: boolean;
   /** Minimum number of paths when `multiSelect` is true (paste or picker). */
   minFiles?: number;
+  /** After a successful multi pick (or paste), set each of these keys to `[]` (e.g. clear prior merge order). */
+  multiSelectOrderResetKeys?: string[];
   defaultValue?: (state: FlowState) => string;
   pickerTitle?: string;
   resolveNextStepId: (state: FlowState) => string;

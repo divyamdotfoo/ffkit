@@ -61,7 +61,7 @@ export async function executeCommand(
       }
     }
 
-    if (command.id === "video_merge") {
+    if (command.id === "video_merge" || command.id === "audio_merge") {
       concatListPath = join(tmpdir(), `ffkity-concat-${randomBytes(8).toString("hex")}.txt`);
       writeFileSync(concatListPath, buildConcatDemuxerListContent(resolvedInputPaths), "utf-8");
     }

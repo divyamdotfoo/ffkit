@@ -15,6 +15,7 @@ export function getVideoMergeSteps(): FlowStep[] {
       valueKey: "mergeCandidatePaths",
       multiSelect: true,
       minFiles: 2,
+      multiSelectOrderResetKeys: ["mergeOrderedPaths"],
       resolveNextStepId: () => "video_merge.orderPick",
     },
     {

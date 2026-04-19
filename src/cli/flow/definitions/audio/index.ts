@@ -2,6 +2,7 @@ import { listCommandsByCategory } from "../../../../core/command-registry.ts";
 import type { Category } from "../../../../types.ts";
 import type { FlowDefinition, FlowState, FlowStep } from "../../types.ts";
 import { getAudioConvertExecutionParams, getAudioConvertSteps } from "./convert.ts";
+import { getAudioMergeExecutionParams, getAudioMergeSteps } from "./merge.ts";
 import { getAudioNormalizeExecutionParams, getAudioNormalizeSteps } from "./normalize.ts";
 import { getAudioTrimExecutionParams, getAudioTrimSteps } from "./trim.ts";
 import { getImageExecutionParams, getImageFlowSteps } from "../image/index.ts";
@@ -48,6 +49,7 @@ export function createAudioFlowDefinition(options: AudioFlowOptions): FlowDefini
     ...getAudioConvertSteps(),
     ...getAudioTrimSteps(),
     ...getAudioNormalizeSteps(),
+    ...getAudioMergeSteps(),
     ...getImageFlowSteps(),
     ...getVideoFlowSteps(),
     createExecuteStep(),
@@ -94,7 +96,7 @@ function createScopeStep(): FlowStep {
       {
         label: "audio",
         value: "audio",
-        description: "Convert, trim, and normalize audio files.",
+        description: "Convert, trim, normalize, and merge audio files.",
         nextStepId: "audio.command",
       },
       {
@@ -156,6 +158,9 @@ export function getCommandExecutionParams(values: Record<string, unknown>): Reco
   }
   if (commandId === "audio_normalize") {
     return getAudioNormalizeExecutionParams(values);
+  }
+  if (commandId === "audio_merge") {
+    return getAudioMergeExecutionParams(values);
   }
   if (commandId.startsWith("image_")) {
     return getImageExecutionParams(values);
