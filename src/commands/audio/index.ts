@@ -1,3 +1,8 @@
+import {
+  AUDIO_ENCODING_MODE_PARAMETER_DESCRIPTION,
+  AUDIO_ENCODING_MODE_VALUES,
+  getEncodingArgsForProfile,
+} from "../../core/audio-encoding-profile.ts";
 import { parseHhMmSsTimestampToSeconds } from "../../core/parse-hh-mm-ss-timestamp.ts";
 import type { CommandDescriptor } from "../../types.ts";
 
@@ -31,8 +36,8 @@ export const audioCommands: CommandDescriptor[] = [
         label: "Encoding mode",
         type: "enum",
         required: true,
-        description: "Simple encoding strategy for common workflows.",
-        options: ["compatible", "efficient"],
+        description: AUDIO_ENCODING_MODE_PARAMETER_DESCRIPTION,
+        options: [...AUDIO_ENCODING_MODE_VALUES],
       },
     ],
     buildFfmpegArgs: ({ inputPath, outputPath, params }) => {
@@ -150,8 +155,8 @@ export const audioCommands: CommandDescriptor[] = [
         label: "Encoding mode",
         type: "enum",
         required: true,
-        description: "Simple encoding strategy for common workflows.",
-        options: ["compatible", "efficient"],
+        description: AUDIO_ENCODING_MODE_PARAMETER_DESCRIPTION,
+        options: [...AUDIO_ENCODING_MODE_VALUES],
       },
     ],
     buildFfmpegArgs: ({ outputPath, concatListPath, params }) => {
@@ -176,20 +181,6 @@ export const audioCommands: CommandDescriptor[] = [
     },
   },
 ];
-
-function getEncodingArgsForProfile(qualityProfile: string, encodingMode: string): string[] {
-  const profileToBitrate: Record<string, string> = {
-    "smaller-file": "96k",
-    balanced: "160k",
-    "higher-quality": "256k",
-  };
-
-  const bitrate = profileToBitrate[qualityProfile] ?? "160k";
-  if (encodingMode === "efficient") {
-    return ["-b:a", bitrate, "-compression_level", "8"];
-  }
-  return ["-b:a", bitrate];
-}
 
 function getLoudNormFilter(strength: string): string {
   if (strength === "light") {

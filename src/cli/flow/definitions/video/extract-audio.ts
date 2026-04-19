@@ -1,23 +1,23 @@
 import { AUDIO_ENCODING_MODE_FLOW_OPTIONS } from "../../../../core/audio-encoding-profile.ts";
-import type { FlowStep } from "../../types.ts";
-import { asString, getAudioOutputPath } from "./shared.ts";
+import type { FlowState, FlowStep } from "../../types.ts";
+import { asString, getVideoOutputPath } from "./shared.ts";
 
-export function getAudioConvertSteps(): FlowStep[] {
+export function getVideoExtractAudioSteps(): FlowStep[] {
   return [
     {
-      id: "audio_convert.inputPath",
+      id: "video_extract_audio.inputPath",
       type: "file",
-      title: "Input audio file",
+      title: "Input video file",
       helpText: "Press Enter to open native file picker, O to retry, or paste path.",
-      pickerTitle: "Choose audio file to convert",
+      pickerTitle: "Choose video to extract audio from",
       valueKey: "inputPath",
       required: true,
-      resolveNextStepId: () => "audio_convert.targetFormat",
+      resolveNextStepId: () => "video_extract_audio.targetFormat",
     },
     {
-      id: "audio_convert.targetFormat",
+      id: "video_extract_audio.targetFormat",
       type: "select",
-      title: "Target format",
+      title: "Output audio format",
       valueKey: "targetFormat",
       options: [
         { label: "mp3", value: "mp3" },
@@ -27,10 +27,10 @@ export function getAudioConvertSteps(): FlowStep[] {
         { label: "ogg", value: "ogg" },
         { label: "flac", value: "flac" },
       ],
-      resolveNextStepId: () => "audio_convert.qualityProfile",
+      resolveNextStepId: () => "video_extract_audio.qualityProfile",
     },
     {
-      id: "audio_convert.qualityProfile",
+      id: "video_extract_audio.qualityProfile",
       type: "select",
       title: "Quality profile",
       valueKey: "qualityProfile",
@@ -39,32 +39,30 @@ export function getAudioConvertSteps(): FlowStep[] {
         { label: "balanced", value: "balanced" },
         { label: "higher-quality", value: "higher-quality" },
       ],
-      resolveNextStepId: () => "audio_convert.encodingMode",
+      resolveNextStepId: () => "video_extract_audio.encodingMode",
     },
     {
-      id: "audio_convert.encodingMode",
+      id: "video_extract_audio.encodingMode",
       type: "select",
       title: "Encoding mode",
       valueKey: "encodingMode",
       options: [...AUDIO_ENCODING_MODE_FLOW_OPTIONS],
-      resolveNextStepId: () => "audio_convert.outputPath",
+      resolveNextStepId: () => "video_extract_audio.outputPath",
     },
     {
-      id: "audio_convert.outputPath",
+      id: "video_extract_audio.outputPath",
       type: "text",
       title: "Output file path (optional)",
       helpText: "Press Enter to use generated default output path.",
       valueKey: "outputPath",
       required: false,
-      defaultValue: (state) => getAudioOutputPath(state),
+      defaultValue: (state: FlowState) => getVideoOutputPath(state),
       resolveNextStepId: () => "media.execute",
     },
   ];
 }
 
-export function getAudioConvertExecutionParams(
-  values: Record<string, unknown>
-): Record<string, unknown> {
+export function getVideoExtractAudioExecutionParams(values: Record<string, unknown>): Record<string, unknown> {
   return {
     inputPath: asString(values.inputPath),
     outputPath: asString(values.outputPath),

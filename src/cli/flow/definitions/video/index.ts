@@ -1,4 +1,5 @@
 import { getVideoConvertExecutionParams, getVideoConvertSteps } from "./convert.ts";
+import { getVideoExtractAudioExecutionParams, getVideoExtractAudioSteps } from "./extract-audio.ts";
 import { getVideoGifExecutionParams, getVideoGifSteps } from "./gif.ts";
 import { getVideoMergeExecutionParams, getVideoMergeSteps } from "./merge.ts";
 import { getVideoScreenshotExecutionParams, getVideoScreenshotSteps } from "./screenshot.ts";
@@ -11,6 +12,7 @@ export function getVideoFlowSteps(): FlowStep[] {
     ...getVideoConvertSteps(),
     ...getVideoTrimSteps(),
     ...getVideoMergeSteps(),
+    ...getVideoExtractAudioSteps(),
     ...getVideoSpeedSteps(),
     ...getVideoScreenshotSteps(),
     ...getVideoGifSteps(),
@@ -27,6 +29,9 @@ export function getVideoExecutionParams(values: Record<string, unknown>): Record
   }
   if (commandId === "video_merge") {
     return getVideoMergeExecutionParams(values);
+  }
+  if (commandId === "video_extract_audio") {
+    return getVideoExtractAudioExecutionParams(values);
   }
   if (commandId === "video_speed") {
     return getVideoSpeedExecutionParams(values);

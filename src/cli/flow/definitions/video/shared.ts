@@ -38,7 +38,10 @@ export function asString(value: unknown): string {
 
 function getVideoExtension(commandId: string, inputPath: string, targetFormat: string): string {
   if (
-    (commandId === "video_convert" || commandId === "video_screenshot" || commandId === "video_merge") &&
+    (commandId === "video_convert" ||
+      commandId === "video_screenshot" ||
+      commandId === "video_merge" ||
+      commandId === "video_extract_audio") &&
     targetFormat
   ) {
     return targetFormat;

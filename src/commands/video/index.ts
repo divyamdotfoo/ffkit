@@ -1,5 +1,10 @@
 import { extname } from "node:path";
 
+import {
+  AUDIO_ENCODING_MODE_PARAMETER_DESCRIPTION,
+  AUDIO_ENCODING_MODE_VALUES,
+  getEncodingArgsForProfile,
+} from "../../core/audio-encoding-profile.ts";
 import { parseHhMmSsTimestampToSeconds } from "../../core/parse-hh-mm-ss-timestamp.ts";
 import type { CommandDescriptor } from "../../types.ts";
 
@@ -132,6 +137,54 @@ export const videoCommands: CommandDescriptor[] = [
         codecs.videoCodec,
         ...codecs.videoCodecArgs,
         ...(codecs.audioCodec ? ["-c:a", codecs.audioCodec, ...codecs.audioCodecArgs] : []),
+        outputPath,
+      ];
+    },
+  },
+  {
+    id: "video_extract_audio",
+    category: "video",
+    name: "Extract audio",
+    description:
+      "Export the first audio stream from a video file to a standalone audio file (re-encoded). Requires an audio track on the input.",
+    inputFormats: ["mp4", "mov", "mkv", "avi", "webm", "m4v"],
+    outputFormats: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
+    parameters: [
+      {
+        key: "targetFormat",
+        label: "Target format",
+        type: "enum",
+        required: true,
+        description: "Output audio file extension/format.",
+        options: ["mp3", "wav", "aac", "m4a", "ogg", "flac"],
+      },
+      {
+        key: "qualityProfile",
+        label: "Quality profile",
+        type: "enum",
+        required: true,
+        description: "Balanced defaults for most users.",
+        options: ["smaller-file", "balanced", "higher-quality"],
+      },
+      {
+        key: "encodingMode",
+        label: "Encoding mode",
+        type: "enum",
+        required: true,
+        description: AUDIO_ENCODING_MODE_PARAMETER_DESCRIPTION,
+        options: [...AUDIO_ENCODING_MODE_VALUES],
+      },
+    ],
+    buildFfmpegArgs: ({ inputPath, outputPath, params }) => {
+      const qualityProfile = String(params.qualityProfile ?? "balanced");
+      const encodingMode = String(params.encodingMode ?? "compatible");
+      return [
+        "-i",
+        inputPath,
+        "-vn",
+        "-map",
+        "0:a:0",
+        ...getEncodingArgsForProfile(qualityProfile, encodingMode),
         outputPath,
       ];
     },

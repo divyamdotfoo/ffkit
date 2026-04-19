@@ -1,5 +1,6 @@
 import { basename as pathBasename } from "node:path";
 
+import { AUDIO_ENCODING_MODE_FLOW_OPTIONS } from "../../../../core/audio-encoding-profile.ts";
 import type { FlowState, FlowStep, SelectOption } from "../../types.ts";
 import { asString, getAudioOutputPath } from "./shared.ts";
 
@@ -79,10 +80,7 @@ export function getAudioMergeSteps(): FlowStep[] {
       type: "select",
       title: "Encoding mode",
       valueKey: "encodingMode",
-      options: [
-        { label: "compatible", value: "compatible" },
-        { label: "efficient", value: "efficient" },
-      ],
+      options: [...AUDIO_ENCODING_MODE_FLOW_OPTIONS],
       resolveNextStepId: () => "audio_merge.outputPath",
     },
     {

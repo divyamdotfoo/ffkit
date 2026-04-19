@@ -56,7 +56,7 @@ CLI, MCP server, and Express server for FFmpeg workflows. Work in progress.
 - [x] Create GIF: Video or time range to GIF
 - [x] Trim: Cut segment by start time and duration
 - [x] Merge clips: Concatenate multiple videos
-- [ ] Extract audio: Pull audio track from video
+- [x] Extract audio: Pull audio track from video
 - [ ] Remove audio: Strip audio, keep video only
 - [ ] Replace audio: Swap video audio with new file
 - [ ] Add subtitles: Burn-in subtitle file (.srt, .vtt)
